@@ -112,6 +112,7 @@ void SoundSystem::play_sound(const std::string& source_name, const std::string& 
 
 }
 
+
 void SoundSystem::load_sound_into_system_for_playback(const std::string& sound_name, const char *filename) {
     bool sound_name_available = sound_name_to_loaded_buffer.count(sound_name) == 0;
     if (!sound_name_available) {
@@ -132,6 +133,44 @@ void SoundSystem::set_listener_position(float x, float y, float z) {
     ALfloat listener_pos[] = {x, y, z};
     alListenerfv(AL_POSITION,listener_pos);
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
+}
+
+void SoundSystem::set_source_gain(const std::string &source_name, float gain) {
+
+    assert(0 <= gain && gain <= 1);
+
+    bool source_exists = source_name_to_source_id.count(source_name) == 1;
+    if (!source_exists) {
+        throw std::runtime_error("you tried to play a sound from a source which doesn't exist");
+    }
+
+    ALuint source_id = source_name_to_source_id[source_name];
+
+    alGetError(); // clear error state
+    alSourcef(source_id,AL_GAIN, gain);
+    assert(alGetError() == AL_NO_ERROR && "Failed to set gain");
+
+//    if ((error = alGetError()) != AL_NO_ERROR)
+//        DisplayALError("alSourcef 0 AL_GAIN : \n", error);
+
+}
+
+void SoundSystem::set_source_looping_option(const std::string &source_name, bool looping) {
+
+    bool source_exists = source_name_to_source_id.count(source_name) == 1;
+    if (!source_exists) {
+        throw std::runtime_error("you tried to play a sound from a source which doesn't exist");
+    }
+
+    ALuint source_id = source_name_to_source_id[source_name];
+
+    ALboolean looping_status = looping ? AL_TRUE : AL_FALSE;
+
+    alSourcei(source_id,AL_LOOPING,looping_status);
+    assert(alGetError() == AL_NO_ERROR && "Failed to set looping option");
+//    if ((error = alGetError()) != AL_NO_ERROR)
+//        DisplayALError("alSourcei 0 AL_LOOPING true: \n", error);
+
 }
 
 

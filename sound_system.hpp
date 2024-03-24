@@ -10,6 +10,8 @@ public:
     ~SoundSystem();
     void load_sound_into_system_for_playback(const std::string& sound_name, const char *filename);
     void create_sound_source(const std::string& source_name);
+    void set_source_gain(const std::string &source_name, float gain);
+    void set_source_looping_option(const std::string &source_name, bool looping);
     void play_sound(const std::string& source_name, const std::string& sound_name);
     void set_listener_position(float x, float y, float z);
 private:
