@@ -4,16 +4,10 @@
 #include "load_sound_file.hpp"
 
 #include "AL/alc.h"
-#include "AL/alext.h"
-#include "sndfile.h"
 
-SoundSystem::SoundSystem() {
-    initialize_openal();
-}
+SoundSystem::SoundSystem() { initialize_openal(); }
 
-SoundSystem::~SoundSystem() {
-    deinitialize_openal();
-}
+SoundSystem::~SoundSystem() { deinitialize_openal(); }
 
 void SoundSystem::initialize_openal() {
     const ALCchar *name;
@@ -47,15 +41,14 @@ void SoundSystem::initialize_openal() {
     printf("Opened \"%s\"\n", name);
 }
 
-
 void SoundSystem::deinitialize_openal() {
 
     /* All done. Delete resources, and close down OpenAL. */
-    for (auto const& [sound_name, buffer_id] : sound_name_to_loaded_buffer) {
+    for (auto const &[sound_name, buffer_id] : sound_name_to_loaded_buffer) {
         alDeleteBuffers(1, &buffer_id);
     }
 
-    for (auto const& [source_name,source_id] : source_name_to_source_id) {
+    for (auto const &[source_name, source_id] : source_name_to_source_id) {
         alDeleteSources(1, &source_id);
     }
 
@@ -73,7 +66,7 @@ void SoundSystem::deinitialize_openal() {
     alcCloseDevice(device);
 }
 
-void SoundSystem::create_sound_source(const std::string& source_name) {
+void SoundSystem::create_sound_source(const std::string &source_name) {
 
     bool source_name_available = source_name_to_source_id.count(source_name) == 0;
     if (!source_name_available) {
@@ -86,10 +79,13 @@ void SoundSystem::create_sound_source(const std::string& source_name) {
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 
     source_name_to_source_id[source_name] = source_id;
-
 }
 
-void SoundSystem::play_sound(const std::string& source_name, const std::string& sound_name) {
+/**
+ * \bug if you try to play a sound which is already playing this fails, need to enqueue the sound for playback or
+ * somehow play two at once? or just overwrite the last sound playing.
+ */
+void SoundSystem::play_sound(const std::string &source_name, const std::string &sound_name) {
 
     bool source_exists = source_name_to_source_id.count(source_name) == 1;
     bool sound_exists = sound_name_to_loaded_buffer.count(sound_name) == 1;
@@ -104,16 +100,13 @@ void SoundSystem::play_sound(const std::string& source_name, const std::string& 
     ALuint loaded_sound_buffer_id = sound_name_to_loaded_buffer[sound_name];
     ALuint source_id = source_name_to_source_id[source_name];
 
-
     alSourcei(source_id, AL_BUFFER, (ALint)loaded_sound_buffer_id);
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 
     alSourcePlay(source_id);
-
 }
 
-
-void SoundSystem::load_sound_into_system_for_playback(const std::string& sound_name, const char *filename) {
+void SoundSystem::load_sound_into_system_for_playback(const std::string &sound_name, const char *filename) {
     bool sound_name_available = sound_name_to_loaded_buffer.count(sound_name) == 0;
     if (!sound_name_available) {
         throw std::runtime_error("a sound with the same name was already loaded.");
@@ -131,7 +124,7 @@ void SoundSystem::load_sound_into_system_for_playback(const std::string& sound_n
 
 void SoundSystem::set_listener_position(float x, float y, float z) {
     ALfloat listener_pos[] = {x, y, z};
-    alListenerfv(AL_POSITION,listener_pos);
+    alListenerfv(AL_POSITION, listener_pos);
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 }
 
@@ -147,12 +140,11 @@ void SoundSystem::set_source_gain(const std::string &source_name, float gain) {
     ALuint source_id = source_name_to_source_id[source_name];
 
     alGetError(); // clear error state
-    alSourcef(source_id,AL_GAIN, gain);
+    alSourcef(source_id, AL_GAIN, gain);
     assert(alGetError() == AL_NO_ERROR && "Failed to set gain");
 
-//    if ((error = alGetError()) != AL_NO_ERROR)
-//        DisplayALError("alSourcef 0 AL_GAIN : \n", error);
-
+    //    if ((error = alGetError()) != AL_NO_ERROR)
+    //        DisplayALError("alSourcef 0 AL_GAIN : \n", error);
 }
 
 void SoundSystem::set_source_looping_option(const std::string &source_name, bool looping) {
@@ -166,11 +158,8 @@ void SoundSystem::set_source_looping_option(const std::string &source_name, bool
 
     ALboolean looping_status = looping ? AL_TRUE : AL_FALSE;
 
-    alSourcei(source_id,AL_LOOPING,looping_status);
+    alSourcei(source_id, AL_LOOPING, looping_status);
     assert(alGetError() == AL_NO_ERROR && "Failed to set looping option");
-//    if ((error = alGetError()) != AL_NO_ERROR)
-//        DisplayALError("alSourcei 0 AL_LOOPING true: \n", error);
-
+    //    if ((error = alGetError()) != AL_NO_ERROR)
+    //        DisplayALError("alSourcei 0 AL_LOOPING true: \n", error);
 }
-
-
