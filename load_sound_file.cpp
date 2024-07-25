@@ -1,7 +1,7 @@
 #include "load_sound_file.hpp"
 #include "AL/alc.h"
-#include "AL/alext.h"
-#include "sndfile.h"
+#include <AL/alext.h>
+#include <sndfile.h>
 
 #include <cinttypes>
 #include <climits>
@@ -425,11 +425,15 @@ ALuint load_sound_and_generate_openal_buffer(const char *filename) {
 
     open_audio_file(filename, &sound_file, &sound_file_info);
     enum FormatType sample_format = determine_format_type(sound_file_info);
-    auto [byteblockalign, splblockalign] = get_byte_and_samples_per_block_alignment(sample_format, filename, sound_file, sound_file_info);
+    auto [byteblockalign, splblockalign] = get_byte_and_samples_per_block_alignment(sample_format, filename, sound_file,
+                                                                                    sound_file_info);
     format = determine_openal_format(sound_file, sound_file_info, sample_format);
-    auto [membuf, num_bytes] = decode_audio_file_into_dynamic_memory(filename, sound_file, sound_file_info, sample_format, format, byteblockalign, splblockalign);
+    auto [membuf, num_bytes] = decode_audio_file_into_dynamic_memory(filename, sound_file, sound_file_info,
+                                                                     sample_format, format, byteblockalign,
+                                                                     splblockalign);
 
-    ALuint buffer = load_audio_file_in_dynamic_memory_into_buffer(membuf, sound_file, sound_file_info, num_bytes, format, splblockalign);
+    ALuint buffer = load_audio_file_in_dynamic_memory_into_buffer(membuf, sound_file, sound_file_info, num_bytes,
+                                                                  format, splblockalign);
 
     return buffer;
 
