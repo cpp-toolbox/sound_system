@@ -3,6 +3,7 @@
 
 #include "al.h"
 #include <map>
+#include <string>
 
 class SoundSystem {
 public:
