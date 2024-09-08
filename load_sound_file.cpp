@@ -11,6 +11,24 @@
 #include <map>
 #include <stdexcept>
 
+
+
+#include <string>
+#include <sstream>
+
+// NOTE:: this is required by https://stackoverflow.com/questions/12975341/to-string-is-not-a-member-of-std-says-g-mingw
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
+#include <iostream>
+
 std::map<ALenum, const char *> openal_format_enum_to_string = {
         {AL_FORMAT_MONO8,                "Mono, U8"},
         {AL_FORMAT_MONO16,               "Mono, S16"},
@@ -335,7 +353,7 @@ ALenum determine_openal_format(SNDFILE *sound_file, SF_INFO sound_file_info, enu
     }
     if (!format) {
         sf_close(sound_file); // we might not want to do this in general
-        throw std::runtime_error("Unsupported channel count: " + std::to_string(sound_file_info.channels));
+        throw std::runtime_error("Unsupported channel count: " + patch::to_string(sound_file_info.channels));
     }
     return format;
 }
