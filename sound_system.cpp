@@ -1,3 +1,5 @@
+#include <iostream>
+#include <ostream>
 #include <stdexcept>
 #include <cassert>
 #include "sound_system.hpp"
@@ -86,24 +88,50 @@ void SoundSystem::create_sound_source(const std::string &source_name) {
  * somehow play two at once? or just overwrite the last sound playing.
  */
 void SoundSystem::play_sound(const std::string &source_name, const std::string &sound_name) {
-
     bool source_exists = source_name_to_source_id.count(source_name) == 1;
     bool sound_exists = sound_name_to_loaded_buffer.count(sound_name) == 1;
 
     if (!sound_exists) {
-        throw std::runtime_error("you tried to play a sound which doesn't exist");
+        throw std::runtime_error("You tried to play a sound which doesn't exist.");
     }
     if (!source_exists) {
-        throw std::runtime_error("you tried to play a sound from a source which doesn't exist");
+        throw std::runtime_error("You tried to play a sound from a source which doesn't exist.");
     }
 
     ALuint loaded_sound_buffer_id = sound_name_to_loaded_buffer[sound_name];
+    if (loaded_sound_buffer_id == 0) {
+        std::cerr << "Loaded sound buffer ID is invalid!" << std::endl;
+        return;
+    }
+
     ALuint source_id = source_name_to_source_id[source_name];
 
-    alSourcei(source_id, AL_BUFFER, (ALint)loaded_sound_buffer_id);
-    assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
+    // Check the state of the source
+    ALint state;
+    alGetSourcei(source_id, AL_SOURCE_STATE, &state);
+    if (state == AL_PLAYING) {
+        alSourceStop(source_id);
+        ALenum error = alGetError();
+        if (error != AL_NO_ERROR) {
+            std::cerr << "OpenAL error stopping source: " << alGetString(error) << std::endl;
+            return;
+        }
+    }
 
+    // Now it's safe to set the buffer
+    alSourcei(source_id, AL_BUFFER, (ALint)loaded_sound_buffer_id);
+    ALenum error = alGetError();
+    if (error != AL_NO_ERROR) {
+        std::cerr << "OpenAL error setting buffer: " << alGetString(error) << std::endl;
+        return;
+    }
+
+    // Play the source
     alSourcePlay(source_id);
+    error = alGetError();
+    if (error != AL_NO_ERROR) {
+        std::cerr << "OpenAL error playing source: " << alGetString(error) << std::endl;
+    }
 }
 
 void SoundSystem::load_sound_into_system_for_playback(const std::string &sound_name, const char *filename) {
