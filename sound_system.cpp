@@ -8,6 +8,11 @@
 #include "AL/alc.h"
 
 SoundSystem::SoundSystem() { initialize_openal(); }
+SoundSystem::SoundSystem(int num_sources) {
+    initialize_openal();
+    init_sound_buffers();
+    init_sound_sources(num_sources);
+}
 
 SoundSystem::~SoundSystem() { deinitialize_openal(); }
 
@@ -53,6 +58,12 @@ void SoundSystem::deinitialize_openal() {
     for (auto const &[source_name, source_id] : source_name_to_source_id) {
         alDeleteSources(1, &source_id);
     }
+
+    // NEW
+    for (ALuint source : sound_sources) {
+        alDeleteSources(1, &source);
+    }
+    // NEW
 
     ALCdevice *device;
     ALCcontext *ctx;
@@ -191,3 +202,50 @@ void SoundSystem::set_source_looping_option(const std::string &source_name, bool
     //    if ((error = alGetError()) != AL_NO_ERROR)
     //        DisplayALError("alSourcei 0 AL_LOOPING true: \n", error);
 }
+
+// NEW
+void SoundSystem::init_sound_buffers() {
+    // this needs to be generalized soon
+    sound_buffers[SoundType::SOUND_1] = load_sound_and_generate_openal_buffer("assets/sounds/BD2575.WAV");
+    sound_buffers[SoundType::SOUND_2] = load_sound_and_generate_openal_buffer("assets/sounds/CH.WAV");
+    sound_buffers[SoundType::SOUND_3] = load_sound_and_generate_openal_buffer("assets/sounds/MC50.WAV");
+}
+
+void SoundSystem::init_sound_sources(int num_sources) {
+    for (int i = 0; i < num_sources; i++) {
+        ALuint source;
+        alGenSources(1, &source);
+        sound_sources.push_back(source);
+    }
+}
+
+void SoundSystem::queue_sound(SoundType type, glm::vec3 position) { sound_to_play_queue.push({type, position}); }
+
+void SoundSystem::play_all_sounds() {
+    while (!sound_to_play_queue.empty()) {
+        QueuedSound queued_sound = sound_to_play_queue.front();
+        sound_to_play_queue.pop();
+
+        ALuint source = get_available_source();
+        if (source != 0) {
+            ALuint buffer = sound_buffers[queued_sound.type];
+            alSourcei(source, AL_BUFFER, buffer);
+            alSource3f(source, AL_POSITION, queued_sound.position.x, queued_sound.position.y, queued_sound.position.z);
+            alSourcePlay(source);
+        } else {
+            std::cout << "bad source" << std::endl;
+        }
+    }
+}
+
+ALuint SoundSystem::get_available_source() {
+    for (ALuint source : sound_sources) {
+        ALint state;
+        alGetSourcei(source, AL_SOURCE_STATE, &state);
+        if (state != AL_PLAYING) {
+            return source;
+        }
+    }
+    return 0; // no available source
+}
+// NEW
