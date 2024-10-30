@@ -14,6 +14,12 @@ enum class SoundType {
 };
 ```
 
+also give it a `sbpt.ini` file:
+```
+[subproject]
+export = sound_types.hpp
+```
+
 and be sure to run `sbpt.py` so that the sound system will know where to find that.
 
 # Dependencies
