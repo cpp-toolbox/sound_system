@@ -1,5 +1,5 @@
-#ifndef OPENAL_MWE_SOUND_SYSTEM_HPP
-#define OPENAL_MWE_SOUND_SYSTEM_HPP
+#ifndef SOUND_SYSTEM_HPP
+#define SOUND_SYSTEM_HPP
 
 #include <AL/al.h>
 #include <map>
@@ -8,12 +8,7 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 
-// Enum representing different sound types
-enum class SoundType {
-    SOUND_1,
-    SOUND_2,
-    SOUND_3,
-};
+#include "sbpt_generated_includes.hpp"
 
 // Structure representing a sound to be queued
 struct QueuedSound {
@@ -24,7 +19,7 @@ struct QueuedSound {
 class SoundSystem {
   public:
     // NEW
-    SoundSystem(int num_sources);
+    SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file);
     void queue_sound(SoundType type, glm::vec3 position);
     void play_all_sounds();
     // NEW
@@ -51,11 +46,11 @@ class SoundSystem {
 
     // Helper functions
     ALuint get_available_source();
-    void init_sound_buffers();
+    void init_sound_buffers(std::unordered_map<SoundType, std::string> &sound_type_to_file);
     void init_sound_sources(int num_sources);
 
     void initialize_openal();
     void deinitialize_openal();
 };
 
-#endif // OPENAL_MWE_SOUND_SYSTEM_HPP
+#endif // SOUND_SYSTEM_HPP

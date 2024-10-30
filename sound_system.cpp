@@ -8,9 +8,9 @@
 #include "AL/alc.h"
 
 SoundSystem::SoundSystem() { initialize_openal(); }
-SoundSystem::SoundSystem(int num_sources) {
+SoundSystem::SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file) {
     initialize_openal();
-    init_sound_buffers();
+    init_sound_buffers(sound_type_to_file);
     init_sound_sources(num_sources);
 }
 
@@ -204,11 +204,13 @@ void SoundSystem::set_source_looping_option(const std::string &source_name, bool
 }
 
 // NEW
-void SoundSystem::init_sound_buffers() {
-    // this needs to be generalized soon
-    sound_buffers[SoundType::SOUND_1] = load_sound_and_generate_openal_buffer("assets/sounds/BD2575.WAV");
-    sound_buffers[SoundType::SOUND_2] = load_sound_and_generate_openal_buffer("assets/sounds/CH.WAV");
-    sound_buffers[SoundType::SOUND_3] = load_sound_and_generate_openal_buffer("assets/sounds/MC50.WAV");
+//
+void SoundSystem::init_sound_buffers(std::unordered_map<SoundType, std::string> &sound_type_to_file) {
+    for (auto &pair : sound_type_to_file) {
+        SoundType sound_type = pair.first;
+        std::string file_path = pair.second;
+        sound_buffers[sound_type] = load_sound_and_generate_openal_buffer(file_path.c_str());
+    }
 }
 
 void SoundSystem::init_sound_sources(int num_sources) {
