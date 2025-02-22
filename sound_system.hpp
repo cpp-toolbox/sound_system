@@ -33,6 +33,7 @@ class SoundSystem {
     void set_source_looping_option(const std::string &source_name, bool looping);
     void play_sound(const std::string &source_name, const std::string &sound_name);
     void set_listener_position(float x, float y, float z);
+    void set_listener_orientation(const glm::vec3 &forward, const glm::vec3 &up);
 
   private:
     std::map<std::string, ALuint> sound_name_to_loaded_buffer;

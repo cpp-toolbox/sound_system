@@ -167,6 +167,30 @@ void SoundSystem::set_listener_position(float x, float y, float z) {
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 }
 
+/*
+Think of "AT" as a string attached to your nose, and think of "UP" as a string attached to the top of your head.
+
+Without the string attached to the top of your head, you could tilt your head clockwise/counterclockwise and still be
+facing "AT". But since you can tilt your head, there's no way for the computer to be sure whether something to the
+canonical "right" should sound in your right ear (the top of your head faces "upwards") or your left ear (the top of
+your head faces "downwards" because you're upside down). The "AT" and "UP" vectors pin the listener's "head" such that
+there's no ambiguity for which way it's facing, and which way it's oriented.
+
+There are actually 3 vectors you need to set: Position, "AT", and "UP". Position 0,0,0 means the head is at the center
+of the universe. "AT" 0,0,-1 means the head is looking into the screen, and "UP" is usually 0,1,0, such that the top of
+the "head" is pointing up. With this setup, anything the user sees on the left side of the screen will sound in his left
+ear. The only time you'd choose something different is in a first-person style game where the player moves around in a
+virtual 3d world. The vectors don't have to be normalized, actually, so you could use 0,42,0 for "UP" and it would do
+the same thing as 0,1,0.
+
+If you do change "AT" and "UP" from their canonical values, the vectors MUST be perpendicular.
+*/
+void SoundSystem::set_listener_orientation(const glm::vec3 &forward, const glm::vec3 &up) {
+    ALfloat listener_orientation[] = {forward.x, forward.y, forward.z, up.x, up.y, up.z};
+    alListenerfv(AL_ORIENTATION, listener_orientation);
+    assert(alGetError() == AL_NO_ERROR && "Failed to set listener orientation");
+}
+
 void SoundSystem::set_source_gain(const std::string &source_name, float gain) {
 
     assert(0 <= gain && gain <= 1);
