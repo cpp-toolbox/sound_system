@@ -1,0 +1,3 @@
+[submodule "openal_utils"]
+	path = openal_utils
+	url = git@github.com:cpp-toolbox/openal_utils.git

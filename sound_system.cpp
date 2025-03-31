@@ -4,10 +4,13 @@
 #include <cassert>
 #include "sound_system.hpp"
 #include "load_sound_file.hpp"
+#include "openal_utils/openal_utils.hpp"
 
-#include "AL/alc.h"
+#include <AL/alc.h>
 
+// TODO: this is depcrecated and should be deleted
 SoundSystem::SoundSystem() { initialize_openal(); }
+// NOTE: should be initialized this way
 SoundSystem::SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file) {
     initialize_openal();
     init_sound_buffers(sound_type_to_file);
@@ -51,17 +54,17 @@ void SoundSystem::initialize_openal() {
 void SoundSystem::deinitialize_openal() {
 
     /* All done. Delete resources, and close down OpenAL. */
-    for (auto const &[sound_name, buffer_id] : sound_name_to_loaded_buffer) {
-        alDeleteBuffers(1, &buffer_id);
+    for (auto const &[sound_name, buffer_id] : sound_name_to_loaded_buffer_id) {
+        delete_buffer(buffer_id);
     }
 
     for (auto const &[source_name, source_id] : source_name_to_source_id) {
-        alDeleteSources(1, &source_id);
+        delete_source(source_id);
     }
 
     // NEW
     for (ALuint source : sound_sources) {
-        alDeleteSources(1, &source);
+        delete_source(source);
     }
     // NEW
 
@@ -86,21 +89,18 @@ void SoundSystem::create_sound_source(const std::string &source_name) {
         throw std::runtime_error("a source with the same name was already created.");
     }
 
-    /* Create the source to play the sound with. */
-    ALuint source_id = 0;
-    alGenSources(1, &source_id);
-    assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
-
+    ALuint source_id = create_source();
     source_name_to_source_id[source_name] = source_id;
 }
 
 /**
+ * I think this is deprecated
  * \bug if you try to play a sound which is already playing this fails, need to enqueue the sound for playback or
  * somehow play two at once? or just overwrite the last sound playing.
  */
 void SoundSystem::play_sound(const std::string &source_name, const std::string &sound_name) {
     bool source_exists = source_name_to_source_id.count(source_name) == 1;
-    bool sound_exists = sound_name_to_loaded_buffer.count(sound_name) == 1;
+    bool sound_exists = sound_name_to_loaded_buffer_id.count(sound_name) == 1;
 
     if (!sound_exists) {
         throw std::runtime_error("You tried to play a sound which doesn't exist.");
@@ -109,44 +109,23 @@ void SoundSystem::play_sound(const std::string &source_name, const std::string &
         throw std::runtime_error("You tried to play a sound from a source which doesn't exist.");
     }
 
-    ALuint loaded_sound_buffer_id = sound_name_to_loaded_buffer[sound_name];
+    ALuint loaded_sound_buffer_id = sound_name_to_loaded_buffer_id[sound_name];
     if (loaded_sound_buffer_id == 0) {
         std::cerr << "Loaded sound buffer ID is invalid!" << std::endl;
         return;
     }
 
     ALuint source_id = source_name_to_source_id[source_name];
-
-    // Check the state of the source
-    ALint state;
-    alGetSourcei(source_id, AL_SOURCE_STATE, &state);
-    if (state == AL_PLAYING) {
-        alSourceStop(source_id);
-        ALenum error = alGetError();
-        if (error != AL_NO_ERROR) {
-            std::cerr << "OpenAL error stopping source: " << alGetString(error) << std::endl;
-            return;
-        }
+    if (get_source_state(source_id) == AL_PLAYING) {
+        stop_source(source_id);
     }
 
-    // Now it's safe to set the buffer
-    alSourcei(source_id, AL_BUFFER, (ALint)loaded_sound_buffer_id);
-    ALenum error = alGetError();
-    if (error != AL_NO_ERROR) {
-        std::cerr << "OpenAL error setting buffer: " << alGetString(error) << std::endl;
-        return;
-    }
-
-    // Play the source
-    alSourcePlay(source_id);
-    error = alGetError();
-    if (error != AL_NO_ERROR) {
-        std::cerr << "OpenAL error playing source: " << alGetString(error) << std::endl;
-    }
+    set_source_buffer(source_id, loaded_sound_buffer_id);
+    play_source(source_id);
 }
 
 void SoundSystem::load_sound_into_system_for_playback(const std::string &sound_name, const char *filename) {
-    bool sound_name_available = sound_name_to_loaded_buffer.count(sound_name) == 0;
+    bool sound_name_available = sound_name_to_loaded_buffer_id.count(sound_name) == 0;
     if (!sound_name_available) {
         throw std::runtime_error("a sound with the same name was already loaded.");
     }
@@ -158,7 +137,7 @@ void SoundSystem::load_sound_into_system_for_playback(const std::string &sound_n
         throw std::runtime_error("failed to generate sound buffer");
     }
 
-    sound_name_to_loaded_buffer[sound_name] = sound_buffer;
+    sound_name_to_loaded_buffer_id[sound_name] = sound_buffer;
 }
 
 void SoundSystem::set_listener_position(float x, float y, float z) {
@@ -167,6 +146,7 @@ void SoundSystem::set_listener_position(float x, float y, float z) {
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 }
 
+<<<<<<< Updated upstream
 /*
 Think of "AT" as a string attached to your nose, and think of "UP" as a string attached to the top of your head.
 
@@ -191,7 +171,7 @@ void SoundSystem::set_listener_orientation(const glm::vec3 &forward, const glm::
     assert(alGetError() == AL_NO_ERROR && "Failed to set listener orientation");
 }
 
-void SoundSystem::set_source_gain(const std::string &source_name, float gain) {
+void SoundSystem::set_source_gain_by_name(const std::string &source_name, float gain) {
 
     assert(0 <= gain && gain <= 1);
 
@@ -200,17 +180,10 @@ void SoundSystem::set_source_gain(const std::string &source_name, float gain) {
         throw std::runtime_error("you tried to play a sound from a source which doesn't exist");
     }
 
-    ALuint source_id = source_name_to_source_id[source_name];
-
-    alGetError(); // clear error state
-    alSourcef(source_id, AL_GAIN, gain);
-    assert(alGetError() == AL_NO_ERROR && "Failed to set gain");
-
-    //    if ((error = alGetError()) != AL_NO_ERROR)
-    //        DisplayALError("alSourcef 0 AL_GAIN : \n", error);
+    set_source_gain(source_name_to_source_id[source_name], gain);
 }
 
-void SoundSystem::set_source_looping_option(const std::string &source_name, bool looping) {
+void SoundSystem::set_source_looping_by_name(const std::string &source_name, bool looping) {
 
     bool source_exists = source_name_to_source_id.count(source_name) == 1;
     if (!source_exists) {
@@ -218,13 +191,7 @@ void SoundSystem::set_source_looping_option(const std::string &source_name, bool
     }
 
     ALuint source_id = source_name_to_source_id[source_name];
-
-    ALboolean looping_status = looping ? AL_TRUE : AL_FALSE;
-
-    alSourcei(source_id, AL_LOOPING, looping_status);
-    assert(alGetError() == AL_NO_ERROR && "Failed to set looping option");
-    //    if ((error = alGetError()) != AL_NO_ERROR)
-    //        DisplayALError("alSourcei 0 AL_LOOPING true: \n", error);
+    set_source_looping(source_id, looping);
 }
 
 // NEW
@@ -233,7 +200,7 @@ void SoundSystem::init_sound_buffers(std::unordered_map<SoundType, std::string> 
     for (auto &pair : sound_type_to_file) {
         SoundType sound_type = pair.first;
         std::string file_path = pair.second;
-        sound_buffers[sound_type] = load_sound_and_generate_openal_buffer(file_path.c_str());
+        sound_type_to_buffer_id[sound_type] = load_sound_and_generate_openal_buffer(file_path.c_str());
     }
 }
 
@@ -247,28 +214,59 @@ void SoundSystem::init_sound_sources(int num_sources) {
 
 void SoundSystem::queue_sound(SoundType type, glm::vec3 position) { sound_to_play_queue.push({type, position}); }
 
+// NOTE: I called this queue looping sound to match the naming of the other, one and because eventually I do want
+// it to use a queuing method, but right now it will start the sound instantly
+[[nodiscard]] unsigned int SoundSystem::queue_looping_sound(SoundType type, glm::vec3 position) {
+    ALuint source_id = get_available_source_id();
+    if (source_id != 0) {
+        ALuint buffer_id = sound_type_to_buffer_id[type];
+        set_source_looping(source_id, true);
+        set_source_buffer(source_id, buffer_id);
+        set_source_position(source_id, position);
+        play_source(source_id);
+        // are we just supposed to return the source_id? yes lol
+        return source_id;
+    } else {
+        // TODO: return an optional or something, this is bad... just putting it here so the return type is valid
+        return 999;
+        std::cout << "bad source" << std::endl;
+    }
+}
+
+void SoundSystem::stop_looping_sound(const unsigned int &source_id) {
+    set_source_looping(source_id, false);
+
+    ALint state = get_source_state(source_id);
+    if (state == AL_PLAYING || state == AL_PAUSED) {
+        stop_source(source_id);
+    } else {
+        std::cout << "Warning: Source was not playing or paused." << std::endl;
+    }
+
+    detach_source_buffer(source_id);
+}
+
 void SoundSystem::play_all_sounds() {
     while (!sound_to_play_queue.empty()) {
         QueuedSound queued_sound = sound_to_play_queue.front();
         sound_to_play_queue.pop();
 
-        ALuint source = get_available_source();
+        ALuint source = get_available_source_id();
+
         if (source != 0) {
-            ALuint buffer = sound_buffers[queued_sound.type];
-            alSourcei(source, AL_BUFFER, buffer);
-            alSource3f(source, AL_POSITION, queued_sound.position.x, queued_sound.position.y, queued_sound.position.z);
-            alSourcePlay(source);
+            ALuint buffer = sound_type_to_buffer_id[queued_sound.type];
+            set_source_buffer(source, buffer);
+            set_source_position(source, queued_sound.position);
+            play_source(source);
         } else {
-            std::cout << "bad source" << std::endl;
+            std::cout << "Error: No available audio source." << std::endl;
         }
     }
 }
 
-ALuint SoundSystem::get_available_source() {
+ALuint SoundSystem::get_available_source_id() {
     for (ALuint source : sound_sources) {
-        ALint state;
-        alGetSourcei(source, AL_SOURCE_STATE, &state);
-        if (state != AL_PLAYING) {
+        if (get_source_state(source) != AL_PLAYING) {
             return source;
         }
     }
