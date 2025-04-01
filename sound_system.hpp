@@ -10,7 +10,15 @@
 
 #include "sbpt_generated_includes.hpp"
 
-// structure representing a sound to be queued
+/* Sound System:
+ * - play a sound right now, at a position without caring about any of the implementation details
+ * - play a sound right now, have it looping forever until I turn it off
+ * - have a deeper understanding of the openal api, and allow the user to create their own sound sources
+ *   which do not interfere with any of the above
+ * - given a sound source we can queue up a sequence of sounds to be played sequentially over time.
+ *
+ */
+
 struct QueuedSound {
     SoundType type;
     glm::vec3 position;
@@ -18,11 +26,15 @@ struct QueuedSound {
 
 class SoundSystem {
   public:
-    // NEW
+    // TODO: in the future I specifying the num sources should be optional, otherwise we get new ones as needed.
     SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file);
     void queue_sound(SoundType type, glm::vec3 position);
+    // returns the id of the source that will be playing that looping sound
     [[nodiscard]] unsigned int queue_looping_sound(SoundType type, glm::vec3 position);
+    // pass the id of the source that's playing the sound here to turn it off
     void stop_looping_sound(const unsigned int &source_id);
+
+    // plays all queued sounds
     void play_all_sounds();
 
     void set_listener_position(float x, float y, float z);
