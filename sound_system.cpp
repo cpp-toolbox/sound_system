@@ -146,7 +146,6 @@ void SoundSystem::set_listener_position(float x, float y, float z) {
     assert(alGetError() == AL_NO_ERROR && "Failed to setup sound source");
 }
 
-<<<<<<< Updated upstream
 /*
 Think of "AT" as a string attached to your nose, and think of "UP" as a string attached to the top of your head.
 
