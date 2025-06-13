@@ -2,6 +2,7 @@
 #define SOUND_SYSTEM_HPP
 
 #include <AL/al.h>
+#include <glm/fwd.hpp>
 #include <map>
 #include <queue>
 #include <string>
@@ -28,7 +29,7 @@ class SoundSystem {
   public:
     // TODO: in the future I specifying the num sources should be optional, otherwise we get new ones as needed.
     SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file);
-    void queue_sound(SoundType type, glm::vec3 position);
+    void queue_sound(SoundType type, glm::vec3 position = glm::vec3(0));
     // returns the id of the source that will be playing that looping sound
     [[nodiscard]] unsigned int queue_looping_sound(SoundType type, glm::vec3 position);
     // pass the id of the source that's playing the sound here to turn it off
