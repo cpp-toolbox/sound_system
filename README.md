@@ -27,7 +27,7 @@ export = sound_types.hpp
 and be sure to run `sbpt.py` so that the sound system will know where to find that.
 
 # Dependencies
-- [openal-soft](https://github.com/kcat/openal-soft)
-- [libsndfile](https://github.com/libsndfile/libsndfile)
+- [openal-soft](https://conan.io/center/recipes/openal-soft)
+- [libsndfile](https://conan.io/center/recipes/libsndfile)
 
 
