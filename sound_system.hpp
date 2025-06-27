@@ -27,6 +27,8 @@ struct QueuedSound {
 
 class SoundSystem {
   public:
+    ConsoleLogger logger = ConsoleLogger("sound_system");
+
     // TODO: in the future I specifying the num sources should be optional, otherwise we get new ones as needed.
     SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file);
     void queue_sound(SoundType type, glm::vec3 position = glm::vec3(0));
