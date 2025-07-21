@@ -30,7 +30,7 @@ class SoundSystem {
     ConsoleLogger logger = ConsoleLogger("sound_system");
 
     // TODO: in the future I specifying the num sources should be optional, otherwise we get new ones as needed.
-    SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file);
+    SoundSystem(int num_sources = 100, const std::unordered_map<SoundType, std::string> &sound_type_to_file = {});
     void queue_sound(SoundType type, glm::vec3 position = glm::vec3(0));
     // returns the id of the source that will be playing that looping sound
     [[nodiscard]] unsigned int queue_looping_sound(SoundType type, glm::vec3 position);
@@ -41,10 +41,6 @@ class SoundSystem {
     void play_all_sounds();
 
     void set_listener_position(float x, float y, float z);
-    // NEW
-
-    // TODO: delete this soon
-    SoundSystem();
 
     ~SoundSystem();
 
@@ -70,7 +66,7 @@ class SoundSystem {
 
     // Helper functions
     ALuint get_available_source_id();
-    void init_sound_buffers(std::unordered_map<SoundType, std::string> &sound_type_to_file);
+    void init_sound_buffers(const std::unordered_map<SoundType, std::string> &sound_type_to_file);
     void init_sound_sources(int num_sources);
 
     void initialize_openal();

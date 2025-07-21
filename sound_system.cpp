@@ -8,11 +8,7 @@
 
 #include <AL/alc.h>
 
-// TODO: this is depcrecated and should be deleted
-SoundSystem::SoundSystem() { initialize_openal(); }
-// NOTE: should be initialized this way
-SoundSystem::SoundSystem(int num_sources, std::unordered_map<SoundType, std::string> &sound_type_to_file) {
-
+SoundSystem::SoundSystem(int num_sources, const std::unordered_map<SoundType, std::string> &sound_type_to_file) {
     logger.debug("size of sttf: {}", sound_type_to_file.size());
     initialize_openal();
     init_sound_buffers(sound_type_to_file);
@@ -197,7 +193,7 @@ void SoundSystem::set_source_looping_by_name(const std::string &source_name, boo
 
 // NEW
 //
-void SoundSystem::init_sound_buffers(std::unordered_map<SoundType, std::string> &sound_type_to_file) {
+void SoundSystem::init_sound_buffers(const std::unordered_map<SoundType, std::string> &sound_type_to_file) {
 
     for (auto &pair : sound_type_to_file) {
         SoundType sound_type = pair.first;
