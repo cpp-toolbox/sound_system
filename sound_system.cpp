@@ -53,16 +53,16 @@ void SoundSystem::deinitialize_openal() {
 
     /* All done. Delete resources, and close down OpenAL. */
     for (auto const &[sound_name, buffer_id] : sound_name_to_loaded_buffer_id) {
-        delete_buffer(buffer_id);
+        openal_utils::delete_buffer(buffer_id);
     }
 
     for (auto const &[source_name, source_id] : source_name_to_source_id) {
-        delete_source(source_id);
+        openal_utils::delete_source(source_id);
     }
 
     // NEW
     for (ALuint source : sound_sources) {
-        delete_source(source);
+        openal_utils::delete_source(source);
     }
     // NEW
 
@@ -87,7 +87,7 @@ void SoundSystem::create_sound_source(const std::string &source_name) {
         throw std::runtime_error("a source with the same name was already created.");
     }
 
-    ALuint source_id = create_source();
+    ALuint source_id = openal_utils::create_source();
     source_name_to_source_id[source_name] = source_id;
 }
 
@@ -114,12 +114,12 @@ void SoundSystem::play_sound(const std::string &source_name, const std::string &
     }
 
     ALuint source_id = source_name_to_source_id[source_name];
-    if (get_source_state(source_id) == AL_PLAYING) {
-        stop_source(source_id);
+    if (openal_utils::get_source_state(source_id) == AL_PLAYING) {
+        openal_utils::stop_source(source_id);
     }
 
-    set_source_buffer(source_id, loaded_sound_buffer_id);
-    play_source(source_id);
+    openal_utils::set_source_buffer(source_id, loaded_sound_buffer_id);
+    openal_utils::play_source(source_id);
 }
 
 void SoundSystem::load_sound_into_system_for_playback(const std::string &sound_name, const char *filename) {
@@ -177,7 +177,7 @@ void SoundSystem::set_source_gain_by_name(const std::string &source_name, float 
         throw std::runtime_error("you tried to play a sound from a source which doesn't exist");
     }
 
-    set_source_gain(source_name_to_source_id[source_name], gain);
+    openal_utils::set_source_gain(source_name_to_source_id[source_name], gain);
 }
 
 void SoundSystem::set_source_looping_by_name(const std::string &source_name, bool looping) {
@@ -188,7 +188,7 @@ void SoundSystem::set_source_looping_by_name(const std::string &source_name, boo
     }
 
     ALuint source_id = source_name_to_source_id[source_name];
-    set_source_looping(source_id, looping);
+    openal_utils::set_source_looping(source_id, looping);
 }
 
 // NEW
@@ -211,19 +211,21 @@ void SoundSystem::init_sound_sources(int num_sources) {
     }
 }
 
-void SoundSystem::queue_sound(SoundType type, glm::vec3 position) { sound_to_play_queue.push({type, position}); }
+void SoundSystem::queue_sound(SoundType type, glm::vec3 position, float gain) {
+    sound_to_play_queue.push({type, position, gain});
+}
 
 // NOTE: I called this queue looping sound to match the naming of the other, one and because eventually I do want
 // it to use a queuing method, but right now it will start the sound instantly
-[[nodiscard]] unsigned int SoundSystem::queue_looping_sound(SoundType type, glm::vec3 position) {
+[[nodiscard]] unsigned int SoundSystem::queue_looping_sound(SoundType type, glm::vec3 position, float gain) {
     ALuint source_id = get_available_source_id();
     if (source_id != 0) {
         ALuint buffer_id = sound_type_to_buffer_id[type];
-        set_source_looping(source_id, true);
-        set_source_buffer(source_id, buffer_id);
-        set_source_position(source_id, position);
-        play_source(source_id);
-        // are we just supposed to return the source_id? yes lol
+        openal_utils::set_source_looping(source_id, true);
+        openal_utils::set_source_buffer(source_id, buffer_id);
+        openal_utils::set_source_position(source_id, position);
+        openal_utils::set_source_gain(source_id, gain);
+        openal_utils::play_source(source_id);
         return source_id;
     } else {
         // TODO: return an optional or something, this is bad... just putting it here so the return type is valid
@@ -233,16 +235,16 @@ void SoundSystem::queue_sound(SoundType type, glm::vec3 position) { sound_to_pla
 }
 
 void SoundSystem::stop_looping_sound(const unsigned int &source_id) {
-    set_source_looping(source_id, false);
+    openal_utils::set_source_looping(source_id, false);
 
-    ALint state = get_source_state(source_id);
+    ALint state = openal_utils::get_source_state(source_id);
     if (state == AL_PLAYING || state == AL_PAUSED) {
-        stop_source(source_id);
+        openal_utils::stop_source(source_id);
     } else {
         std::cout << "Warning: Source was not playing or paused." << std::endl;
     }
 
-    detach_source_buffer(source_id);
+    openal_utils::detach_source_buffer(source_id);
 }
 
 void SoundSystem::play_all_sounds() {
@@ -254,9 +256,14 @@ void SoundSystem::play_all_sounds() {
 
         if (source != 0) {
             ALuint buffer = sound_type_to_buffer_id[queued_sound.type];
-            set_source_buffer(source, buffer);
-            set_source_position(source, queued_sound.position);
-            play_source(source);
+            // NOTE: the source becomes dirty, ie we've modified its openal state (ie, gain pitch position, buffer), but
+            // that's not a big deal because every time a sound is played it will override those properties, we use
+            // default parameters so that they're all defined, not sure if this is a good long term approach yet
+            openal_utils::set_source_buffer(source, buffer);
+            openal_utils::set_source_position(source, queued_sound.position);
+            openal_utils::set_source_gain(source, queued_sound.gain);
+
+            openal_utils::play_source(source);
         } else {
             std::cout << "Error: No available audio source." << std::endl;
         }
@@ -265,7 +272,7 @@ void SoundSystem::play_all_sounds() {
 
 ALuint SoundSystem::get_available_source_id() {
     for (ALuint source : sound_sources) {
-        if (get_source_state(source) != AL_PLAYING) {
+        if (openal_utils::get_source_state(source) != AL_PLAYING) {
             return source;
         }
     }

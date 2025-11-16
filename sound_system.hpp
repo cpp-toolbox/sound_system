@@ -23,6 +23,7 @@
 struct QueuedSound {
     SoundType type;
     glm::vec3 position;
+    float gain;
 };
 
 class SoundSystem {
@@ -31,9 +32,11 @@ class SoundSystem {
 
     // TODO: in the future I specifying the num sources should be optional, otherwise we get new ones as needed.
     SoundSystem(int num_sources = 100, const std::unordered_map<SoundType, std::string> &sound_type_to_file = {});
-    void queue_sound(SoundType type, glm::vec3 position = glm::vec3(0));
+    void queue_sound(SoundType type, glm::vec3 position = glm::vec3(0), float gain = 1.0);
+
     // returns the id of the source that will be playing that looping sound
-    [[nodiscard]] unsigned int queue_looping_sound(SoundType type, glm::vec3 position);
+    [[nodiscard]] unsigned int queue_looping_sound(SoundType type, glm::vec3 position = glm::vec3(0), float gain = 1.0);
+
     // pass the id of the source that's playing the sound here to turn it off
     void stop_looping_sound(const unsigned int &source_id);
 
@@ -46,13 +49,12 @@ class SoundSystem {
 
     void load_sound_into_system_for_playback(const std::string &sound_name, const char *filename);
     void create_sound_source(const std::string &source_name);
-    void set_source_gain_by_name(const std::string &source_name, float gain);
-
-    void set_source_looping_by_name(const std::string &source_name, bool looping);
 
     // deprecated
     void play_sound(const std::string &source_name, const std::string &sound_name);
     void set_listener_orientation(const glm::vec3 &forward, const glm::vec3 &up);
+    void set_source_gain_by_name(const std::string &source_name, float gain);
+    void set_source_looping_by_name(const std::string &source_name, bool looping);
 
   private:
     std::map<std::string, ALuint> sound_name_to_loaded_buffer_id;
