@@ -9,7 +9,7 @@
 #include <AL/alc.h>
 
 SoundSystem::SoundSystem(int num_sources, const std::unordered_map<SoundType, std::string> &sound_type_to_file) {
-    logger.debug("size of sttf: {}", sound_type_to_file.size());
+    GlobalLogSection _("sound system constructor");
     initialize_openal();
     init_sound_buffers(sound_type_to_file);
     init_sound_sources(num_sources);
@@ -46,7 +46,7 @@ void SoundSystem::initialize_openal() {
     if (!name || alcGetError(device) != AL_NO_ERROR)
         name = alcGetString(device, ALC_DEVICE_SPECIFIER);
 
-    logger.info("Just initialized openal with: {}", name);
+    global_logger->info("Just initialized openal with: {}", name);
 }
 
 void SoundSystem::deinitialize_openal() {
@@ -194,11 +194,11 @@ void SoundSystem::set_source_looping_by_name(const std::string &source_name, boo
 // NEW
 //
 void SoundSystem::init_sound_buffers(const std::unordered_map<SoundType, std::string> &sound_type_to_file) {
-
+    GlobalLogSection _("init_sound_buffers");
     for (auto &pair : sound_type_to_file) {
         SoundType sound_type = pair.first;
         std::string file_path = pair.second;
-        logger.debug("about to initialize sound buffer for: {}", file_path);
+        global_logger->debug("about to initialize sound buffer for: {}", file_path);
         sound_type_to_buffer_id[sound_type] = load_sound_and_generate_openal_buffer(file_path.c_str());
     }
 }
